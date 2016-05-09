@@ -17,7 +17,9 @@
 package learn.bytecode.util;
 
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -84,6 +86,7 @@ public class ClassFileUtils {
     public static Class<?> toClass(ClassFile ct, ClassLoader loader, ProtectionDomain domain) {
         try {
             byte[] b = ct.toBytecode();
+            Files.write(new File("target/test.class").toPath(), b);
             java.lang.reflect.Method method;
             Object[] args;
             if (domain == null) {

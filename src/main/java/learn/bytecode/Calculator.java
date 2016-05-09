@@ -22,9 +22,14 @@ package learn.bytecode;
  * @author Jozef Hartinger
  *
  */
-public class Calculator {
+public class Calculator implements Service {
 
     public int getInt(int value) {
         return value + 100;
+    }
+
+    @Override
+    public String name() {
+        return "BLOK";
     }
 }

@@ -17,20 +17,28 @@
 package learn.bytecode;
 
 import java.lang.reflect.Method;
-
-import learn.bytecode.util.ClassFileUtils;
+import java.util.Random;
 
 import org.jboss.classfilewriter.ClassFile;
 import org.jboss.classfilewriter.ClassMethod;
+import org.jboss.classfilewriter.code.BranchEnd;
 import org.jboss.classfilewriter.code.CodeAttribute;
+
+import learn.bytecode.util.ClassFileUtils;
 
 public class Main {
 
     private static final Method GET_INT_METHOD;
+    private static final Method SERVICE_NAME_METHOD;
+    private static final Method CALCULATOR_NAME_METHOD;
+    private static final Method TOSTRING_METHOD;
 
     static {
         try {
             GET_INT_METHOD = Calculator.class.getMethod("getInt", int.class);
+            SERVICE_NAME_METHOD = Service.class.getMethod("name");
+            CALCULATOR_NAME_METHOD = Calculator.class.getMethod("name");
+            TOSTRING_METHOD = Calculator.class.getMethod("toString");
         } catch (NoSuchMethodException | SecurityException e) {
             throw new RuntimeException(e);
         }
@@ -39,13 +47,14 @@ public class Main {
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException {
 
         // class CalculatorSubclass extends Calculator {
-        ClassFile classFile = new ClassFile("CalculatorSubclass", Calculator.class.getName());
+        ClassFile classFile = new ClassFile("CalculatorSubclass", Calculator.class.getName(), Service.class.getName());
 
         // generate default constructor
         generateConstructor(classFile);
 
         // override Calculator.getInt(int value)
         generateGetInt(classFile, GET_INT_METHOD);
+        generateName(classFile, SERVICE_NAME_METHOD);
 
         // generate and load CalculatorSubclass
         Class<?> proxyClass = ClassFileUtils.toClass(classFile, Calculator.class.getClassLoader(), Calculator.class.getProtectionDomain());
@@ -55,6 +64,7 @@ public class Main {
         // See what it returns
         System.out.println("CalculatorSubclass.getInt(3): " + result.getInt(3));
         System.out.println("CalculatorSubclass.getInt(-4): " + result.getInt(-4));
+        System.out.println("CalculatorSubclass.name(): " + result.name());
     }
 
     private static void generateConstructor(ClassFile classFile) throws NoSuchMethodException, SecurityException {
@@ -65,15 +75,31 @@ public class Main {
         b.returnInstruction();
     }
 
-    private static void generateGetInt(ClassFile classFile, Method superclassMethod) {
-        // TODO add code here
+    private static void generateGetInt(ClassFile classFile, Method superclassMethod) throws NoSuchMethodException, SecurityException {
+        CodeAttribute b = classFile.addMethod(superclassMethod).getCodeAttribute();
+        b.aload(0); // this
+        b.iload(1); // param
+        b.invokespecial(superclassMethod);
+        b.istore(2);
+        b.newInstruction(Random.class);
+        b.dup();
+        b.invokespecial(Random.class.getConstructor());
+        b.iload(2);
+        b.invokevirtual(Random.class.getMethod("nextInt", int.class));
+        b.returnInstruction();
     }
 
-
-
-
-
-
+    private static void generateName(ClassFile classFile, Method superclassMethod) throws NoSuchMethodException, SecurityException {
+        CodeAttribute b = classFile.addMethod(superclassMethod).getCodeAttribute();
+        b.iconst(0);
+        BranchEnd jumpMarker = b.ifne();
+        b.aload(0);
+        b.invokespecial(SERVICE_NAME_METHOD);
+        b.returnInstruction();
+        b.branchEnd(jumpMarker);
+        b.aconstNull();
+        b.returnInstruction();
+    }
 
 
 
